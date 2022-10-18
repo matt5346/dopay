@@ -14,14 +14,6 @@ export default api
 
 export async function uploadData (transaction_message, permit_message, transaction_sign, isPermit, native) {
   let result = null
-  let data = {
-    "forwarder" : transaction_message,
-    "permit" : permit_message,
-    "forwarderSignature" : transaction_sign,
-    "isPermit" : isPermit,
-    "native" : native
-  }
-  console.log(data, 'data')
 
   const headers = {
       "Content-Type": "application/json",
@@ -29,8 +21,8 @@ export async function uploadData (transaction_message, permit_message, transacti
   };
 
   try {
-    console.log(data)
-    result = await api.post("/",  data, headers)
+    console.log(transaction_message, 'uploadData')
+    result = await api.get("/",  transaction_message, headers)
 
     console.log(result, "RESULT")
   } catch(err) {

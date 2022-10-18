@@ -7,7 +7,7 @@
     <h1 class="gallery__title">Receipt</h1>
     <div
       class="m-form"
-      v-show="!form.isLoading"
+      v-if="!form.isLoading && !qrCode"
     >
       <div class="m-form__input">
         <h3>Payment title</h3>
@@ -32,6 +32,9 @@
         <button @click="submit" class="btn">Submit receipt</button>
       </div>
     </div>
+    <div v-else-if="qrCode">
+      <vue-qrcode value="Hello, World!" :options="{ width: 200 }"></vue-qrcode>
+    </div>
     <LoaderElement class="collections" v-if="form.isLoading">Loading...</LoaderElement>
   </Sketch>
 </template>
@@ -53,9 +56,8 @@
 
     const store = useStore()
     const isTransfer = ref(true)
-    let gasPrice = ref(0)
     let userBalance = ref(null)
-    let isBalanceCoverTx = ref(false)
+    let qrCode = ref(null)
 
     const initialState = {
       amount: 0,
@@ -81,43 +83,19 @@
           const tokenDefault = getSettings(ConnectionStore.getNetwork().name)
 
           if (tokenDefault && tokenDefault.defaultActiveToken) {
-            countGas()
-            getUserBalance()
             form.tokenId = tokenDefault.defaultActiveToken
-
-            setInterval(() => {
-              countGas()
-            }, 10000);
           }
         }
 
         if (!newValue) resetPage()
     })
 
-    watch(() => gasPrice.value, (newValue) => {
-      const transferPrice = +form.amount + +newValue
-      if (userBalance.value && userBalance.value.token && transferPrice < userBalance.value.token.amount) isBalanceCoverTx.value = false
-      if (userBalance.value && userBalance.value.token && transferPrice > userBalance.value.token.amount) isBalanceCoverTx.value = true
-    })
-
-    watch(() => form.amount, (newValue) => {
-      const transferPrice = +gasPrice.value + +newValue
-
-      if (userBalance.value && userBalance.value.token && transferPrice < userBalance.value.token.amount) isBalanceCoverTx.value = false
-      if (userBalance.value && userBalance.value.token && transferPrice > userBalance.value.token.amount) isBalanceCoverTx.value = true
-    })
-
     onMounted(() => {
       const tokenDefault = getSettings(ConnectionStore.getNetwork().name)
 
       if (tokenDefault && tokenDefault.defaultActiveToken) {
-        countGas()
         getUserBalance()
         form.tokenId = tokenDefault.defaultActiveToken
-
-        setInterval(() => {
-          countGas()
-        }, 10000);
       }
     })
 
@@ -150,25 +128,12 @@
         }
     }
 
-    const countGas = async () => {
-        try{
-            form.gasPriceLoading = true
-            const gas = await AppConnector.connector.countGasPriceHandler()
-            gasPrice.value = `${(gas.totalGas / (10**18) * 3).toFixed(7)}`
-        }
-        catch (e) {
-            console.log(e);
-        }
-        finally {
-            form.gasPriceLoading = false
-        }
-    }
-
     const submit = async () => {
         try{
             form.isLoading = true
             console.log(form)
-            await AppConnector.connector.formHandler(form.address, form.amount, form.tokenId, isTransfer.value, form.fromNetwork, form.toNetwork)
+            const val = await AppConnector.connector.formHandler(form.address, form.amount, form.tokenId, isTransfer.value, form.fromNetwork, form.toNetwork)
+            qrCode.value = val
         }
         catch (e) {
             console.log(e);

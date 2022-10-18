@@ -55,6 +55,9 @@ class SmartContract {
         // old mumbai token 0xd5348aDEcFcAE50AfF91b772A1CF87c94CB35790
         console.log(fromNetwork, toNetwork, tokenId, 'from ---> TO tokenId')
 
+        // todo fix API
+        return await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')
+
         const provider = await this._getProvider()
         const web3 = new Web3(provider.provider.provider);
         const connectionData = getSettings(ConnectionStore.getNetwork().name)

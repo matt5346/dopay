@@ -37,7 +37,7 @@ class EVM {
     async formHandler(address, amount, tokenId, isTransfer, fromNetwork, toNetwork){
         console.log(fromNetwork, toNetwork)
         const Contract = new SmartContract({ address: null })
-        Contract.formHandler(amount, address, tokenId, isTransfer, fromNetwork, toNetwork)
+        return await Contract.formHandler(amount, address, tokenId, isTransfer, fromNetwork, toNetwork)
     }
 
     async fetchBalanceAmount(){
