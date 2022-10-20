@@ -133,6 +133,7 @@
             form.isLoading = true
             console.log(form)
             const val = await AppConnector.connector.formHandler(form.address, form.amount, form.tokenId, isTransfer.value, form.fromNetwork, form.toNetwork)
+            console.log(val, '---VAL')
             qrCode.value = val
         }
         catch (e) {

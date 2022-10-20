@@ -96,58 +96,65 @@ class SmartContract {
 
         const params = [from[0], buildPermitData];
 
+        let response = null
+
         // console.log(fromNetwork, toNetwork, tokenId, 'from ---> TO tokenId')
-
-        web3.currentProvider.sendAsync(
-            {
-            method,
-            params,
-            from: from[0],
-            },
-            async function (err, result) {
-                if (err) return console.dir(err);
-                if (result.error) {
-                    alert(result.error.message);
-                }
-                if (result.error) return console.error('ERROR', result);
-            
-                const { v,r,s } = utils.splitSignature(result.result);
-
-                // let permitMessage = {
-                //     'owner': owner,
-                //     'spender': spender,
-                //     'value': value,
-                //     'deadline': deadline,
-                //     'v': v ,
-                //     'r': r,
-                //     's': s
-                // }
-                // console.log('Permit: ', permitMessage, v, r, s)
-
-                try{
-                    // const tx = await contract.permit(owner, spender, value, deadline, v, r, s, { gasLimit: 100000 })
-                    // console.log(tx, 'tx approve')
-                    // const args = {
-                    //     valueFromSender,
-                    //     receiver,
-                    //     valueToReceiver,
-                    //     permitMessage: {...permitMessage, v, r, s},
-                    //     forwarderNonce,
-                    //     isPermit,
-                    //     token,
-                    //     native,
-                    //     toNetwork
+        const response2 = new Promise((resolve) => {
+            web3.currentProvider.sendAsync(
+                {
+                method,
+                params,
+                from: from[0],
+                },
+                async function (err, result) {
+                    if (err) return console.dir(err);
+                    if (result.error) {
+                        alert(result.error.message);
+                    }
+                    if (result.error) return console.error('ERROR', result);
+                
+                    const { v,r,s } = utils.splitSignature(result.result);
+    
+                    // let permitMessage = {
+                    //     'owner': owner,
+                    //     'spender': spender,
+                    //     'value': value,
+                    //     'deadline': deadline,
+                    //     'v': v ,
+                    //     'r': r,
+                    //     's': s
                     // }
+                    // console.log('Permit: ', permitMessage, v, r, s)
+    
+                    try{
+                        // const tx = await contract.permit(owner, spender, value, deadline, v, r, s, { gasLimit: 100000 })
+                        // console.log(tx, 'tx approve')
+                        // const args = {
+                        //     valueFromSender,
+                        //     receiver,
+                        //     valueToReceiver,
+                        //     permitMessage: {...permitMessage, v, r, s},
+                        //     forwarderNonce,
+                        //     isPermit,
+                        //     token,
+                        //     native,
+                        //     toNetwork
+                        // }
+    
+                        response = await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')
 
-                    return await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')  
+                        resolve(response)
+    
+                        // await self.executeForwardContract(args)
+                    }
+                    catch (e){
+                        console.log('mint error', e);
+                    }
+                }
+            )
+        })
 
-                    // await self.executeForwardContract(args)
-                }
-                catch (e){
-                    console.log('mint error', e);
-                }
-            }
-        );
+        return await response2;
 
         // return await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')  
 
