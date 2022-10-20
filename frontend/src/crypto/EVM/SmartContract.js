@@ -50,13 +50,12 @@ class SmartContract {
     }
 
     async formHandler(tokensAmount, receiver, tokenId, isTransfer, fromNetwork, toNetwork){
-        // receiver 0xEE24e3A77936744aBC8D54302cC2b649dE8AC5A1
-        // old mumbai contract 0x50567de3e7e9cd8adbba6ffe4458043aefa8228a
-        // old mumbai token 0xd5348aDEcFcAE50AfF91b772A1CF87c94CB35790
-        console.log(fromNetwork, toNetwork, tokenId, 'from ---> TO tokenId')
 
-        // todo fix API
-        return await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')
+        console.log(tokensAmount)
+        console.log(receiver)
+        console.log(tokenId)
+        
+        const method = 'eth_signTypedData_v4';
 
         const provider = await this._getProvider()
         const web3 = new Web3(provider.provider.provider);
@@ -64,162 +63,234 @@ class SmartContract {
         const chainData = getData(ConnectionStore.getNetwork().name)
         let chainId = 1
 
+        let buildPermitData = {};
+
         if (chainData)  chainId = chainData.chainId
 
-        const forwarderChecked = web3.utils.toChecksumAddress(connectionData.forwarderContractAddress)
+        const Invoice = [
+            { name: 'title', type: 'string' },
+            { name: 'value', type: 'uint256' },
+            { name: 'tokenId', type: 'address' },
+        ];
+        // "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        const EIP712Domain = [
+            { name: 'name', type: 'string' },
+            { name: 'version', type: 'string' },
+            { name: 'chainId', type: 'uint256' },
+            { name: 'verifyingContract', type: 'address' },
+        ]
 
-        const abi = TokensABI.polygonErc20.ABI
-        const forwarderContract = new Contract(forwarderChecked, abi, provider)
+        buildPermitData= JSON.stringify({
+            primaryType: 'Invoice',
+            types: { EIP712Domain, Invoice },
+            domain: {
+                name: 'DoPay',
+                version: '1',
+                chainId: 1,
+                verifyingContract: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+            },
+            message: { title: receiver, value: tokensAmount, tokenId },
+        })
 
-        receiver = web3.utils.toChecksumAddress(receiver)
+        const from = await web3.eth.getAccounts();
+
+        const params = [from[0], buildPermitData];
+
+        // console.log(fromNetwork, toNetwork, tokenId, 'from ---> TO tokenId')
+
+        web3.currentProvider.sendAsync(
+            {
+            method,
+            params,
+            from: from[0],
+            },
+            async function (err, result) {
+                if (err) return console.dir(err);
+                if (result.error) {
+                    alert(result.error.message);
+                }
+                if (result.error) return console.error('ERROR', result);
+            
+                const { v,r,s } = utils.splitSignature(result.result);
+
+                // let permitMessage = {
+                //     'owner': owner,
+                //     'spender': spender,
+                //     'value': value,
+                //     'deadline': deadline,
+                //     'v': v ,
+                //     'r': r,
+                //     's': s
+                // }
+                // console.log('Permit: ', permitMessage, v, r, s)
+
+                try{
+                    // const tx = await contract.permit(owner, spender, value, deadline, v, r, s, { gasLimit: 100000 })
+                    // console.log(tx, 'tx approve')
+                    // const args = {
+                    //     valueFromSender,
+                    //     receiver,
+                    //     valueToReceiver,
+                    //     permitMessage: {...permitMessage, v, r, s},
+                    //     forwarderNonce,
+                    //     isPermit,
+                    //     token,
+                    //     native,
+                    //     toNetwork
+                    // }
+
+                    return await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')  
+
+                    // await self.executeForwardContract(args)
+                }
+                catch (e){
+                    console.log('mint error', e);
+                }
+            }
+        );
+
+        // return await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')  
+
+
+        // todo fix API
+
+        // const provider = await this._getProvider()
+        // const web3 = new Web3(provider.provider.provider);
+        // const connectionData = getSettings(ConnectionStore.getNetwork().name)
+        // const chainData = getData(ConnectionStore.getNetwork().name)
+        // let chainId = 1
+
+        // if (chainData)  chainId = chainData.chainId
+
+        // const forwarderChecked = web3.utils.toChecksumAddress(connectionData.forwarderContractAddress)
+
+        // const abi = TokensABI.polygonErc20.ABI
+        // const forwarderContract = new Contract(forwarderChecked, abi, provider)
+
+        // receiver = web3.utils.toChecksumAddress(receiver)
         //Owner - это тот, кто залогинен
-        const owner = (await web3.eth.getAccounts())[0]
+        // const owner = (await web3.eth.getAccounts())[0]
         // console.log(forwarderContract, 'forwarderContract')
 
         // const owner = (await web3.eth.getAccounts())[0];
-        const forwarderNonce = forwarderContract.getNonce ? await forwarderContract.getNonce(owner) : 0
-        const token = web3.utils.toChecksumAddress(tokenId) // contract with permit
-        const spender = connectionData.forwarderContractAddress
-        const deadline = 1665411447;
+        // const forwarderNonce = forwarderContract.getNonce ? await forwarderContract.getNonce(owner) : 0
+        // const token = web3.utils.toChecksumAddress(tokenId) // contract with permit
+        // const spender = connectionData.forwarderContractAddress
+        // const deadline = 1665411447;
 
 
-        const erc20 = TokensABI[`usdc_${connectionData.blockchain.toLowerCase()}`].ABI
-        const contract = new Contract(token, erc20, provider)
-        const name = await contract.name()
-        const tokenDecimals = await contract.decimals()
-        const nonceOfContract = await contract.nonces(owner)
+        // const erc20 = TokensABI[`usdc_${connectionData.blockchain.toLowerCase()}`].ABI
+        // const contract = new Contract(token, erc20, provider)
+        // const name = await contract.name()
+        // const tokenDecimals = await contract.decimals()
+        // const nonceOfContract = await contract.nonces(owner)
 
-        const nonce = parseInt(utils.formatUnits(nonceOfContract, "wei"))
-        const tokenWithDecimals = tokensAmount * Math.pow(10, tokenDecimals)
-        const value = '18446205110165755834005948204546580960626098221936403173208959885300094367';
-        const allowed = true
+        // const nonce = parseInt(utils.formatUnits(nonceOfContract, "wei"))
+        // const tokenWithDecimals = tokensAmount * Math.pow(10, tokenDecimals)
+        // const value = '18446205110165755834005948204546580960626098221936403173208959885300094367';
+        // const allowed = true
 
         // console.log('ChainID:', chainId)
 
-        let native = false
-        let isPermit = false
+        // let native = false
+        // let isPermit = false
         
-        let Permit = [];
+        // let Permit = [];
 
-        let EIP712Domain = [];
+        // let EIP712Domain = [];
 
 
-        let buildPermitData = {};
+        
 
-        console.log('Chain', chainId);
+        // console.log('Chain', chainId);
 
         // console.log(nonceOfContract)
 
 
         // if usdc on polygon, cause need salt for permit
-        if (tokenId === '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174') {
-            Permit = [
-                { name: 'owner', type: 'address' },
-                { name: 'spender', type: 'address' },
-                { name: 'value', type: 'uint256' },
-                { name: 'nonce', type: 'uint256' },
-                { name: 'deadline', type: 'uint256' },
-            ];
+        // if (tokenId === '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174') {
+        //     Permit = [
+        //         { name: 'owner', type: 'address' },
+        //         { name: 'spender', type: 'address' },
+        //         { name: 'value', type: 'uint256' },
+        //         { name: 'nonce', type: 'uint256' },
+        //         { name: 'deadline', type: 'uint256' },
+        //     ];
 
-            EIP712Domain = [
-                { name: 'name', type: 'string' },
-                { name: 'version', type: 'string' },
-                { name: 'verifyingContract', type: 'address' },
-                { name: 'salt', type: 'bytes32' }
-            ]
+        //     EIP712Domain = [
+        //         { name: 'name', type: 'string' },
+        //         { name: 'version', type: 'string' },
+        //         { name: 'verifyingContract', type: 'address' },
+        //         { name: 'salt', type: 'bytes32' }
+        //     ]
 
-            buildPermitData = JSON.stringify({
-                primaryType: 'Permit',
-                types: { EIP712Domain, Permit },
-                domain: {
-                    name,
-                    version: '1',
-                    verifyingContract: token,
-                    salt: utils.hexZeroPad(BigNumber.from(137).toHexString(), 32)
-                },
-                message: { owner, spender, value, nonce, deadline },
-            })
-        // if MAINNET
-        } else if (chainId === 1) {
-            // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")
-            Permit = [
-                { name: 'owner', type: 'address' },
-                { name: 'spender', type: 'address' },
-                { name: 'value', type: 'uint256' },
-                { name: 'nonce', type: 'uint256' },
-                { name: 'deadline', type: 'uint256' },
-            ];
-            // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
-            EIP712Domain = [
-                { name: 'name', type: 'string' },
-                { name: 'version', type: 'string' },
-                { name: 'chainId', type: 'uint256' },
-                { name: 'verifyingContract', type: 'address' },
-            ]
+        //     buildPermitData = JSON.stringify({
+        //         primaryType: 'Permit',
+        //         types: { EIP712Domain, Permit },
+        //         domain: {
+        //             name,
+        //             version: '1',
+        //             verifyingContract: token,
+        //             salt: utils.hexZeroPad(BigNumber.from(137).toHexString(), 32)
+        //         },
+        //         message: { owner, spender, value, nonce, deadline },
+        //     })
+        // // if MAINNET
+        // } else if (chainId === 1) {
+        //     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")
+        //     Permit = [
+        //         { name: 'owner', type: 'address' },
+        //         { name: 'spender', type: 'address' },
+        //         { name: 'value', type: 'uint256' },
+        //         { name: 'nonce', type: 'uint256' },
+        //         { name: 'deadline', type: 'uint256' },
+        //     ];
+        //     // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
+        //     EIP712Domain = [
+        //         { name: 'name', type: 'string' },
+        //         { name: 'version', type: 'string' },
+        //         { name: 'chainId', type: 'uint256' },
+        //         { name: 'verifyingContract', type: 'address' },
+        //     ]
 
-            buildPermitData= JSON.stringify({
-                primaryType: 'Permit',
-                types: { EIP712Domain, Permit },
-                domain: {
-                    name,
-                    version: '2',
-                    chainId: 1,
-                    verifyingContract: token,
-                },
-                message: { owner, spender, value, nonce, deadline },
-            })
-        // if ROPSTEN
-        } else if (chainId === 3) {
-            // PERMIT_TYPEHASH = keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
-            Permit = [
-                { name: 'holder', type: 'address' },
-                { name: 'spender', type: 'address' },
-                { name: 'nonce', type: 'uint256' },
-                { name: 'expiry', type: 'uint256' },
-                { name: 'allowed', type: 'bool' },
-            ];
-            // "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-            EIP712Domain = [
-                { name: 'name', type: 'string' },
-                { name: 'version', type: 'string' },
-                { name: 'chainId', type: 'uint256' },
-                { name: 'verifyingContract', type: 'address' },
-            ]
-
-            buildPermitData= JSON.stringify({
-                primaryType: 'Permit',
-                types: { EIP712Domain, Permit },
-                domain: {
-                    name,
-                    version: '1',
-                    chainId,
-                    verifyingContract: token,
-                },
-                message: { holder: owner, spender, nonce, expiry: deadline, allowed},
-            })
-        }
+        //     buildPermitData= JSON.stringify({
+        //         primaryType: 'Permit',
+        //         types: { EIP712Domain, Permit },
+        //         domain: {
+        //             name,
+        //             version: '2',
+        //             chainId: 1,
+        //             verifyingContract: token,
+        //         },
+        //         message: { owner, spender, value, nonce, deadline },
+        //     })
+        // // if ROPSTEN
+        // } else if (chainId === 3) {
+        //     // PERMIT_TYPEHASH = keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
+            
+        // }
         
-        const from = await web3.eth.getAccounts();
-        const params = [from[0], buildPermitData];
-        const method = 'eth_signTypedData_v4';
-        const self = this;
+        // const from = await web3.eth.getAccounts();
+        // const params = [from[0], buildPermitData];
+        // const method = 'eth_signTypedData_v4';
+        // const self = this;
 
         // console.log(owner, forwarderContractAddress, 'contract---111-')
-        const allowanceForwarder = await contract.allowance(owner, connectionData.forwarderContractAddress)
+        // const allowanceForwarder = await contract.allowance(owner, connectionData.forwarderContractAddress)
         // console.log(contract, allowanceForwarder, 'contract----')
-        const gasData = await this.countGasPrice()
-        const totalGas = gasData.totalGas
-        const tokenPrice_ = gasData.tokenPrice_
+        // const gasData = await this.countGasPrice()
+        // const totalGas = gasData.totalGas
+        // const tokenPrice_ = gasData.tokenPrice_
 
-        let valueFromSender = tokenWithDecimals + 3 * Math.round(totalGas/10**12)	 // gas
+        // let valueFromSender = tokenWithDecimals + 3 * Math.round(totalGas/10**12)	 // gas
 
 
 
-        const valueToReceiver = tokenWithDecimals
+        // const valueToReceiver = tokenWithDecimals
 
-        if (native == true){
-            valueFromSender = valueFromSender / tokenPrice_;
-        }
+        // if (native == true){
+        //     valueFromSender = valueFromSender / tokenPrice_;
+        // }
         // console.log("utils.formatUnits(allowanceForwarder, wei) valueFromSender", utils.formatUnits(allowanceForwarder, "wei"), valueFromSender)
         // // console.log("Permit: ", buildPermitData)
         // // console.log("method: ", from[0])
@@ -231,87 +302,39 @@ class SmartContract {
         // console.log(params)
         // console.log(from[0])
 
-        if (valueFromSender > utils.formatUnits(allowanceForwarder, "wei")) {
-            isPermit = true
-            web3.currentProvider.sendAsync(
-                {
-                method,
-                params,
-                from: from[0],
-                },
-                async function (err, result) {
-                    if (err) return console.dir(err);
-                    if (result.error) {
-                        alert(result.error.message);
-                    }
-                    if (result.error) return console.error('ERROR', result);
-                
-                    const { v,r,s } = utils.splitSignature(result.result);
+        // if (valueFromSender > utils.formatUnits(allowanceForwarder, "wei")) {
+        //     isPermit = true
+        // }
+        // else {
+        //     try{
+        //         let permitMessage = {
+        //             'owner': '',
+        //             'spender': '',
+        //             'value': 0,
+        //             'deadline': 0
+        //         }
+        //         let v = 0
+        //         let r = ''
+        //         let s = ''
 
-                    let permitMessage = {
-                        'owner': owner,
-                        'spender': spender,
-                        'value': value,
-                        'deadline': deadline,
-                        'v': v ,
-                        'r': r,
-                        's': s
-                    }
-                    // console.log('Permit: ', permitMessage, v, r, s)
+        //         const args = {
+        //             valueFromSender,
+        //             receiver,
+        //             valueToReceiver,
+        //             permitMessage: {...permitMessage, v, r, s},
+        //             forwarderNonce,
+        //             isPermit,
+        //             token,
+        //             native,
+        //             toNetwork
+        //         }
 
-                    try{
-                        // const tx = await contract.permit(owner, spender, value, deadline, v, r, s, { gasLimit: 100000 })
-                        // console.log(tx, 'tx approve')
-                        const args = {
-                            valueFromSender,
-                            receiver,
-                            valueToReceiver,
-                            permitMessage: {...permitMessage, v, r, s},
-                            forwarderNonce,
-                            isPermit,
-                            token,
-                            native,
-                            toNetwork
-                        }
-
-                        await self.executeForwardContract(args)
-                    }
-                    catch (e){
-                        console.log('mint error', e);
-                    }
-                }
-            );
-        }
-        else {
-            try{
-                let permitMessage = {
-                    'owner': '',
-                    'spender': '',
-                    'value': 0,
-                    'deadline': 0
-                }
-                let v = 0
-                let r = ''
-                let s = ''
-
-                const args = {
-                    valueFromSender,
-                    receiver,
-                    valueToReceiver,
-                    permitMessage: {...permitMessage, v, r, s},
-                    forwarderNonce,
-                    isPermit,
-                    token,
-                    native,
-                    toNetwork
-                }
-
-                await self.executeForwardContract(args)
-            }
-            catch (e){
-                console.log('mint error', e);
-            }
-        }
+        //         await self.executeForwardContract(args)
+        //     }
+        //     catch (e){
+        //         console.log('mint error', e);
+        //     }
+        // }
     }
     
 
