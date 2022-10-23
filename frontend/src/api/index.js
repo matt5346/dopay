@@ -12,8 +12,13 @@ const api  = axios.create({
 
 export default api
 
-export async function uploadData (transaction_message, permit_message, transaction_sign, isPermit, native) {
+export async function uploadData (invoice_params, invoice_signature) {
   let result = null
+
+  let data = {
+    "invoice_params" : invoice_params,
+    "invoice_signature" : invoice_signature
+  }
 
   const headers = {
       "Content-Type": "application/json",
@@ -21,8 +26,8 @@ export async function uploadData (transaction_message, permit_message, transacti
   };
 
   try {
-    console.log(transaction_message, 'uploadData')
-    result = await api.get("/",  transaction_message, headers)
+    console.log(data)
+    result = await api.post("/send_invoice/", data, headers)
 
     console.log(result, "RESULT")
   } catch(err) {
