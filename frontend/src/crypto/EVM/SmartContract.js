@@ -63,7 +63,7 @@ class SmartContract {
         const chainData = getData(ConnectionStore.getNetwork().name)
         let chainId = 1
 
-        let buildPermitData = {};
+        let buildInvoiceData = {};
 
         if (chainData)  chainId = chainData.chainId
 
@@ -80,7 +80,7 @@ class SmartContract {
             { name: 'verifyingContract', type: 'address' },
         ]
 
-        buildPermitData= JSON.stringify({
+        buildInvoiceData= JSON.stringify({
             primaryType: 'Invoice',
             types: { EIP712Domain, Invoice },
             domain: {
@@ -89,16 +89,17 @@ class SmartContract {
                 chainId: 1,
                 verifyingContract: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
             },
-            message: { title: receiver, value: tokensAmount, tokenId },
+            message: { title: receiver, value: parseInt(tokensAmount), tokenId },
         })
 
         const from = await web3.eth.getAccounts();
 
-        const params = [from[0], buildPermitData];
+        const params = [from[0], buildInvoiceData];
 
         let response = null
 
         // console.log(fromNetwork, toNetwork, tokenId, 'from ---> TO tokenId')
+
         const response2 = new Promise((resolve) => {
             web3.currentProvider.sendAsync(
                 {
@@ -113,18 +114,8 @@ class SmartContract {
                     }
                     if (result.error) return console.error('ERROR', result);
                 
-                    const { v,r,s } = utils.splitSignature(result.result);
+                    const invoice_signature = utils.splitSignature(result.result);
     
-                    // let permitMessage = {
-                    //     'owner': owner,
-                    //     'spender': spender,
-                    //     'value': value,
-                    //     'deadline': deadline,
-                    //     'v': v ,
-                    //     'r': r,
-                    //     's': s
-                    // }
-                    // console.log('Permit: ', permitMessage, v, r, s)
     
                     try{
                         // const tx = await contract.permit(owner, spender, value, deadline, v, r, s, { gasLimit: 100000 })
@@ -140,8 +131,9 @@ class SmartContract {
                         //     native,
                         //     toNetwork
                         // }
-    
-                        response = await uploadData('QmaHgt8nJ257pZQz5SSiYB2Qw1bz7FDDMuk5xG8irNmVNL')
+                        const invoiceData = JSON.parse(buildInvoiceData)
+
+                        response = await uploadData(invoiceData, invoice_signature)
 
                         resolve(response)
     
