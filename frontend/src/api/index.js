@@ -12,6 +12,19 @@ const api  = axios.create({
 
 export default api
 
+export async function getData () {
+  let result = null
+  try {
+    result = await axios.get("https://api.ipfsbrowser.com/ipfs/get.php?hash=QmPtSmraeowzZ5MdtVKAqVUh1DX992DAiKEHF8fAJAjiGW/")
+
+    console.log(result, "RESULT")
+  } catch(err) {
+    console.log(err, "error modifyPicture")
+  }
+
+  return result ? result.data : null
+}
+
 export async function uploadData (invoice_params, invoice_signature) {
   let result = null
 
